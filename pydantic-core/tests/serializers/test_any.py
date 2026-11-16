@@ -248,6 +248,22 @@ def test_include_generator(any_serializer):
     assert any_serializer.to_json(as_generator('a', 'b', 'c', 'd'), include={1, 2}) == b'["b","c"]'
 
 
+def test_file_like_json_fails_cleanly(any_serializer):
+    import io
+
+    f = io.BytesIO(b'hello')
+    assert any_serializer.to_python(f) is f
+    assert f.read() == b'hello'
+    f.seek(0)
+    with pytest.raises(PydanticSerializationError, match='Unable to serialize unknown type'):
+        any_serializer.to_python(f, mode='json')
+    assert f.read() == b'hello'
+    f.seek(0)
+    with pytest.raises(PydanticSerializationError, match='Unable to serialize unknown type'):
+        any_serializer.to_json(f)
+    assert f.read() == b'hello'
+
+
 def test_include_dict(any_serializer):
     assert any_serializer.to_python({1: 2, '3': 4}) == {1: 2, '3': 4}
     assert any_serializer.to_python(MyDataclass(a=1, b='foo', frog=2)) == {'a': 1, 'b': 'foo'}
