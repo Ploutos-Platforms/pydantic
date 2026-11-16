@@ -435,7 +435,12 @@ fn is_pydantic_serializable(op_value: Option<&Bound<'_, PyAny>>) -> bool {
 
 fn is_generator(op_value: Option<&Bound<'_, PyAny>>) -> bool {
     if let Some(value) = op_value {
-        value.cast::<PyIterator>().is_ok()
+        let is_file_like = value
+            .py()
+            .import("io")
+            .and_then(|io| io.getattr("IOBase"))
+            .is_ok_and(|io_base| value.is_instance(&io_base).unwrap_or(false));
+        !is_file_like && value.cast::<PyIterator>().is_ok()
     } else {
         false
     }
